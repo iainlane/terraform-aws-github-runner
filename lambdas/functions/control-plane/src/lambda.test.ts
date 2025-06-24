@@ -242,12 +242,14 @@ describe('Test scale up lambda wrapper.', () => {
       const records = createMultipleRecords(2);
       const multiRecordEvent: SQSEvent = { Records: records };
 
-      const error = new ScaleError('Critical scaling error');
+      const error = new ScaleError('Critical scaling error', 2);
       const mock = vi.fn(scaleUp);
       mock.mockImplementation(() => Promise.reject(error));
       vi.mocked(scaleUp).mockImplementation(mock);
 
-      await expect(scaleUpHandler(multiRecordEvent, context)).rejects.toThrow(error);
+      await expect(scaleUpHandler(multiRecordEvent, context)).resolves.toEqual({
+        batchItemFailures: [{ itemIdentifier: 'message-0' }, { itemIdentifier: 'message-1' }],
+      });
     });
   });
 });

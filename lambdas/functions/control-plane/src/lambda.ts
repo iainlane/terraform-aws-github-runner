@@ -9,7 +9,6 @@ import { scaleDown } from './scale-runners/scale-down';
 import { type ActionRequestMessage, type ActionRequestMessageSQS, scaleUp } from './scale-runners/scale-up';
 import { SSMCleanupOptions, cleanSSMTokens } from './scale-runners/ssm-housekeeper';
 import { checkAndRetryJob } from './scale-runners/job-retry';
-import { log } from 'console';
 
 export async function scaleUpHandler(event: SQSEvent, context: Context): Promise<SQSBatchResponse> {
   setContext(context, 'lambda.ts');
