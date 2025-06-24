@@ -28,11 +28,11 @@ const sqsRecord: SQSRecord = {
   },
   awsRegion: '',
   body: JSON.stringify(body),
-  eventSource: 'aws:SQS',
+  eventSource: 'aws:sqs',
   eventSourceARN: '',
   md5OfBody: '',
   messageAttributes: {},
-  messageId: '',
+  messageId: 'abcd1234',
   receiptHandle: '',
 };
 
@@ -109,14 +109,16 @@ describe('Test scale up lambda wrapper.', () => {
     await expect(scaleUpHandler(sqsEvent, context)).resolves.not.toThrow();
   });
 
-  it('Scale should be rejected', async () => {
+  it('Scale should create a batch failure message', async () => {
     const error = new ScaleError('Scale should be rejected');
     const mock = vi.fn() as MockedFunction<typeof scaleUp>;
     mock.mockImplementation(() => {
       return Promise.reject(error);
     });
     vi.mocked(scaleUp).mockImplementation(mock);
-    await expect(scaleUpHandler(sqsEvent, context)).rejects.toThrow(error);
+    await expect(scaleUpHandler(sqsEvent, context)).resolves.toEqual({
+      batchItemFailures: [{ itemIdentifier: sqsRecord.messageId }],
+    });
   });
 
   describe('Batch processing', () => {

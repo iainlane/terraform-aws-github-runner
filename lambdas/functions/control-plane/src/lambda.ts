@@ -9,6 +9,7 @@ import { scaleDown } from './scale-runners/scale-down';
 import { type ActionRequestMessage, type ActionRequestMessageSQS, scaleUp } from './scale-runners/scale-up';
 import { SSMCleanupOptions, cleanSSMTokens } from './scale-runners/ssm-housekeeper';
 import { checkAndRetryJob } from './scale-runners/job-retry';
+import { log } from 'console';
 
 export async function scaleUpHandler(event: SQSEvent, context: Context): Promise<SQSBatchResponse> {
   setContext(context, 'lambda.ts');
@@ -62,10 +63,21 @@ export async function scaleUpHandler(event: SQSEvent, context: Context): Promise
     return { batchItemFailures };
   } catch (e) {
     if (e instanceof ScaleError) {
-      throw e;
+      for (let i = 0; i < e.failedInstanceCount; i++) {
+        batchItemFailures.push({
+          itemIdentifier: sqsMessages[i].messageId,
+        });
+      }
+      logger.warn(
+        `ScaleError detected, ${e.failedInstanceCount} could not be created. A retry will be attempted via SQS.`,
+        { error: e },
+      );
+    } else {
+      logger.error(`Error processing batch (size: ${sqsMessages.length}): ${(e as Error).message}, ignoring batch`, {
+        error: e,
+      });
     }
 
-    logger.warn(`Will retry error: ${e}`);
     return { batchItemFailures };
   }
 }
